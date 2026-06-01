@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Midhun Raj | Interactive Portfolio</title>
+  
+  <!-- Bruno Ace SC Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; transition: background-color 0.5s ease, color 0.5s ease, border-color 0.3s ease; }
+    
+    body { 
+      overflow: hidden; 
+      font-family: 'Bruno Ace SC', sans-serif; 
+      background: #050505; 
+      color: #ffffff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body.light-mode { background: #f0f0f0; color: #111111; }
+    a { color: inherit; text-decoration: none; }
+
+    /* --- 3D Canvas --- */
+    #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    /* --- Top Navigation --- */
+    .navbar {
+      position: absolute; top: 0; left: 0; width: 100%; padding: 40px 50px;
+      display: flex; justify-content: space-between; align-items: center; z-index: 10; pointer-events: auto;
+    }
+    .logo { font-size: 1.2rem; letter-spacing: 2px; }
+    .nav-links { display: flex; gap: 35px; align-items: center; }
+    .nav-link { font-size: 0.85rem; opacity: 0.6; transition: opacity 0.3s ease; cursor: pointer; }
+    .nav-link:hover { opacity: 1; }
+    
+    .connect-btn {
+      border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 24px; border-radius: 40px;
+      font-size: 0.85rem; opacity: 0.9; transition: all 0.3s ease; background: transparent;
+      color: inherit; font-family: inherit; cursor: pointer;
+    }
+    body.light-mode .connect-btn { border-color: rgba(0, 0, 0, 0.15); }
+    .connect-btn:hover { background: currentColor; color: #050505; border-color: transparent; }
+    body.light-mode .connect-btn:hover { color: #f0f0f0; }
+
+    .admin-btn { border-color: #00ffcc; color: #00ffcc; display: none; }
+    .admin-btn:hover { background: #00ffcc; color: #050505; }
+    body.light-mode .admin-btn { border-color: #059669; color: #059669; }
+    body.light-mode .admin-btn:hover { background: #059669; color: #f0f0f0; }
+
+    /* --- Socials Sidebar --- */
+    .social-sidebar {
+      position: absolute; left: 50px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 30px; z-index: 10; pointer-events: auto;
+    }
+    .social-link {
+      font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; opacity: 0.4;
+      writing-mode: vertical-rl; transform: rotate(180deg); transition: opacity 0.3s ease; cursor: pointer;
+    }
+    .social-link:hover { opacity: 1; }
+
+    /* --- Main Center Content --- */
+    .ui-layer { 
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2; pointer-events: none; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+    }
+    .content { text-align: center; pointer-events: auto; }
+    h1 { font-size: 4.5rem; letter-spacing: 2px; margin-bottom: 12px; text-transform: uppercase; }
+    .subtitle { font-size: 0.85rem; opacity: 0.6; margin-bottom: 35px; letter-spacing: 3px; text-transform: uppercase; }
+    .tags { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+    .tag { 
+      font-size: 0.7rem; padding: 8px 18px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.15); 
+      opacity: 0.7; text-transform: uppercase; letter-spacing: 2px; background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(5px);
+    }
+    body.light-mode .tag { border-color: rgba(0, 0, 0, 0.1); background: rgba(0, 0, 0, 0.02); }
+
+    /* --- Theme Switcher --- */
+    .theme-switcher { position: absolute; bottom: 50px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    .theme-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px; opacity: 0.5; }
+    .theme-dots { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .theme-dot { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 1px solid transparent; transition: transform 0.3s ease, opacity 0.3s ease; position: relative; opacity: 0.6; }
+    .theme-dot::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 50%; border-radius: 0 100px 100px 0; background: inherit; opacity: 0.8; filter: brightness(1.5); }
+    .theme-dot:hover { opacity: 1; transform: scale(1.1); }
+    .theme-dot.active { opacity: 1; transform: scale(1.3); }
+
+    /* --- Glassmorphism Modals --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6);
+      z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 50px; max-width: 800px; width: 90%; max-height: 90vh;
+      overflow-y: auto; transform: translateY(20px); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-overlay.active .glass-panel { transform: translateY(0); }
+    body.light-mode .glass-panel { background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0, 0, 0, 0.05); }
+
+    .close-btn { position: absolute; top: 25px; right: 30px; background: none; border: none; color: inherit; font-size: 1.5rem; cursor: pointer; opacity: 0.4; transition: opacity 0.3s ease, transform 0.3s ease; font-family: sans-serif; }
+    .close-btn:hover { opacity: 1; transform: rotate(90deg); }
+    .modal-title { font-size: 1.8rem; letter-spacing: 1px; margin-bottom: 25px; text-transform: uppercase; }
+    .modal-body p { font-size: 0.95rem; line-height: 1.8; opacity: 0.8; margin-bottom: 20px; font-family: sans-serif; }
+    .modal-body strong { font-weight: bold; color: inherit; font-family: 'Bruno Ace SC', sans-serif; }
+
+    /* --- Tools Menu Styles --- */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .tool-card {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+      padding: 25px 20px; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative;
+    }
+    body.light-mode .tool-card { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.1); }
+    .tool-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
+    body.light-mode .tool-card:hover { background: rgba(0, 0, 0, 0.06); border-color: rgba(0, 0, 0, 0.2); }
+    .tool-icon { font-size: 2.2rem; margin-bottom: 15px; opacity: 0.9; }
+    .tool-card h3 { font-size: 0.9rem; margin-bottom: 10px; letter-spacing: 1px; }
+    .tool-card p { font-size: 0.75rem; opacity: 0.6; font-family: sans-serif; margin: 0; }
+    .auth-lock-icon { position: absolute; top: 15px; right: 15px; font-size: 1rem; opacity: 0.6; }
+
+    /* --- Form Styles --- */
+    .calc-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-family: sans-serif; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .calc-form label { font-size: 0.75rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; font-family: 'Bruno Ace SC', sans-serif; }
+    .calc-form input, .calc-form select, .calc-form textarea {
+      width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px; color: inherit; font-size: 1rem; outline: none; font-family: sans-serif;
+    }
+    .calc-form select option { background: #111; color: #fff; }
+    body.light-mode .calc-form input, body.light-mode .calc-form select, body.light-mode .calc-form textarea { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.15); }
+    body.light-mode .calc-form select option { background: #fff; color: #000; }
+    .calc-form input:focus, .calc-form select:focus, .calc-form textarea:focus { border-color: currentColor; }
+    
+    .result-box { margin-top: 20px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; display: none; }
+    body.light-mode .result-box { background: rgba(0, 0, 0, 0.05); }
+
+    /* --- Output Formatting & Tables --- */
+    .protocol-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-family: sans-serif; font-size: 0.85rem; text-align: left; }
+    .protocol-table th { background: rgba(255, 255, 255, 0.1); padding: 12px; font-family: 'Bruno Ace SC', sans-serif; color: #00ffcc; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+    body.light-mode .protocol-table th { background: rgba(0, 0, 0, 0.1); color: #059669; }
+    .protocol-table td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); opacity: 0.9; }
+    body.light-mode .protocol-table td { border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
+    
+    .plan-section { text-align: left; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    body.light-mode .plan-section { border-top: 1px solid rgba(0, 0, 0, 0.1); }
+    .plan-section h4 { font-family: 'Bruno Ace SC', sans-serif; font-size: 0.9rem; margin-bottom: 10px; color: #00ffcc; letter-spacing: 1px; }
+    body.light-mode .plan-section h4 { color: #059669; }
+    .plan-section p, .plan-section ul { font-family: sans-serif; font-size: 0.9rem; opacity: 0.8; line-height: 1.6; }
+
+    /* --- Admin User List --- */
+    .user-list { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: left; font-family: sans-serif;}
+    body.light-mode .user-list { border-top: 1px solid rgba(0,0,0,0.1); }
+    .user-item { padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 6px; font-size: 0.9rem; display: flex; justify-content: space-between;}
+    body.light-mode .user-item { background: rgba(0,0,0,0.05); }
+    .error-msg { color: #ef4444; font-size: 0.8rem; font-family: sans-serif; display: none; margin-top: -5px; }
+
+    /* --- Nutrition Tracker specific styles --- */
+    .search-results { max-height: 150px; overflow-y: auto; background: rgba(255,255,255,0.05); border-radius: 8px; margin-top: 5px; }
+    body.light-mode .search-results { background: rgba(0,0,0,0.05); }
+    .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: sans-serif; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;}
+    body.light-mode .search-item { border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .search-item:hover { background: rgba(255,255,255,0.1); }
+    body.light-mode .search-item:hover { background: rgba(0,0,0,0.1); }
+    
+    .food-plate-item { padding: 10px; background: rgba(0,255,204,0.1); border-radius: 6px; margin-bottom: 8px; font-family: sans-serif; font-size: 0.85rem; display: flex; justify-content: space-between; border: 1px solid rgba(0,255,204,0.2);}
+    body.light-mode .food-plate-item { background: rgba(5,150,105,0.1); border-color: rgba(5,150,105,0.2); }
+    
+    .progress-wrapper { width: 100%; background: rgba(255,255,255,0.1); height: 12px; border-radius: 10px; margin-top: 5px; overflow: hidden; }
+    body.light-mode .progress-wrapper { background: rgba(0,0,0,0.1); }
+    .progress-bar { height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-bar.cal { background: #00ffcc; }
+    .progress-bar.pro { background: #4ade80; }
+    body.light-mode .progress-bar.cal { background: #059669; }
+    body.light-mode .progress-bar.pro { background: #16a34a; }
+
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- Top Navigation -->
+  <nav class="navbar">
+    <div class="logo">Midhun Raj</div>
+    <div class="nav-links">
+      <a href="#" class="nav-link" id="about-link">About</a>
+      <a href="#" class="nav-link" id="tools-link">OS Tools</a>
+      <a href="#" class="nav-link" id="mode-toggle">Light Mode</a>
+      
+      <!-- Auth Controls -->
+      <a href="#" class="nav-link" id="login-nav-btn">System Login</a>
+      <a href="#" class="connect-btn admin-btn" id="admin-nav-btn">Admin Console</a>
+      <a href="#" class="nav-link" id="logout-nav-btn" style="display: none; color: #ef4444;">Logout</a>
+    </div>
+  </nav>
+
+  <!-- Left Social Sidebar -->
+  <div class="social-sidebar">
+    <a href="https://github.com" target="_blank" class="social-link">Github</a>
+    <a href="https://linkedin.com" target="_blank" class="social-link">LinkedIn</a>
+    <a href="https://twitter.com" target="_blank" class="social-link">Twitter</a>
+  </div>
+
+  <!-- Main Interactive UI -->
+  <div class="ui-layer">
+    <div class="content">
+      <h1>Midhun Raj</h1>
+      <div class="subtitle">Ex Developer • Ex Cybersecurity Engineer • Future Doctor</div>
+      <div class="tags">
+        <span class="tag">System Logic</span>
+        <span class="tag">Digital Security</span>
+        <span class="tag">Holistic Healing</span>
+      </div>
+    </div>
+    <div class="theme-switcher">
+      <div class="theme-label" id="current-theme-name">Theme: Cyber Nature</div>
+      <div class="theme-dots" id="theme-dots-container"></div>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div class="modal-overlay" id="about-modal">
+    <div class="glass-panel">
+      <button class="close-btn modal-close">✕</button>
+      <h2 class="modal-title">My Journey</h2>
+      <div class="modal-body">
+        <p>I started my career mapping the digital world—writing code as a <strong>Developer</strong> and protecting infrastructure as a <strong>Cybersecurity Engineer</strong>.</p>
+        <p>Today, I am applying that same systems-level thinking to the most complex network of all: the human body. As a <strong>BNYS Naturopathy Scholar</strong>, I am transitioning from digital security to biological harmony.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="glass-panel" style="max-width: 400px;">
+      <button class="close-btn modal-close">✕</button>
+      <h2 class="modal-title" style="font-size: 1.5rem; text-align: center;">Authentication</h2>
+      <div class="modal-body">
+        <form class="calc-form" id="login-form">
+          <div class="form-group full-width"><label>Username / ID</label><input type="text" id="login-user" required autocomplete="off"></div>
+          <div class="form-group full-width"><label>Security Key</label><input type="password" id="login-pass" required></div>
+          <div class="form-group full-width">
+            <div id="login-error" class="error-msg">Invalid credentials.</div>
+            <button type="submit" class="connect-btn" style="width: 100%; margin-top: 10px;">Access System</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin System Modal -->
+  <div class="modal-overlay" id="admin-modal">
+    <div class="glass-panel" style="max-width: 500px;">
+      <button class="close-btn modal-close">✕</button>
+      <h2 class="modal-title" style="font-size: 1.5rem; color: #00ffcc;">Admin Terminal</h2>
+      <div class="modal-body">
+        <p>Generate secure credentials for clients.</p>
+        <form class="calc-form" id="add-user-form">
+          <div class="form-group"><label>New Client ID</label><input type="text" id="new-user-id" required autocomplete="off"></div>
+          <div class="form-group"><label>Assign Password</label><input type="text" id="new-user-pass" required autocomplete="off"></div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%; border-color: #00ffcc;">Register Client</button></div>
+        </form>
+        <div class="user-list">
+          <label style="font-family: 'Bruno Ace SC', sans-serif; font-size: 0.8rem; opacity: 0.7;">Active Protocols (Clients)</label>
+          <div id="active-users-container"><div class="user-item" style="opacity: 0.5;">Loading database...</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools Menu Modal -->
+  <div class="modal-overlay" id="tools-menu-modal">
+    <div class="glass-panel" style="max-width: 900px;">
+      <button class="close-btn modal-close">✕</button>
+      <h2 class="modal-title">Holistic OS Tools</h2>
+      <div class="tools-grid">
+        
+        <div class="tool-card public-tool-btn" data-target="calculator-modal">
+          <div class="tool-icon">⚖️</div>
+          <h3>Calorie Engine</h3>
+          <p>Calculate metabolic targets and project your timeline to a goal weight.</p>
+        </div>
+        
+        <!-- SECURE TOOL: Omni-Tracker -->
+        <div class="tool-card secure-tool-btn" data-target="unified-modal">
+          <div class="auth-lock-icon" id="planner-lock-icon">🔒</div>
+          <div class="tool-icon">⚕️</div>
+          <h3>Omni-Tracker</h3>
+          <p>Design holistic protocols and track your daily metabolic targets in one hub.</p>
+        </div>
+
+        <div class="tool-card public-tool-btn" data-target="immunity-modal">
+          <div class="tool-icon">🛡️</div>
+          <h3>Immunity Firewall</h3>
+          <p>Cyber-defense protocols for biological threats.</p>
+        </div>
+
+        <div class="tool-card public-tool-btn" data-target="defrag-modal">
+          <div class="tool-icon">🧠</div>
+          <h3>Cognitive Defrag</h3>
+          <p>Clear mental RAM & reset dopamine baselines.</p>
+        </div>
+
+        <div class="tool-card public-tool-btn" data-target="hardware-modal">
+          <div class="tool-icon">🦾</div>
+          <h3>Hardware Recalibration</h3>
+          <p>Biomechanics & posture patches for desk-workers.</p>
+        </div>
+
+        <div class="tool-card public-tool-btn" data-target="sleep-modal">
+          <div class="tool-icon">🌙</div>
+          <h3>Sleep Decryptor</h3>
+          <p>System hibernation cycles & recovery math.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. Calorie Calculator Modal -->
+  <div class="modal-overlay" id="calculator-modal">
+    <div class="glass-panel">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">Calorie Target</h2>
+      <div class="modal-body">
+        <form class="calc-form" id="calorie-form">
+          <div class="form-group"><label>Age</label><input type="number" id="age" required min="10" max="120"></div>
+          <div class="form-group"><label>Gender</label><select id="gender" required><option value="male">Male</option><option value="female">Female</option></select></div>
+          <div class="form-group"><label>Current Weight (kg)</label><input type="number" id="weight" required></div>
+          <div class="form-group"><label>Target Weight (kg)</label><input type="number" id="target-weight" required></div>
+          <div class="form-group full-width"><label>Height (cm)</label><input type="number" id="height" required></div>
+          <div class="form-group full-width"><label>Activity Level</label>
+            <select id="activity" required><option value="1.2">Sedentary</option><option value="1.375">Lightly Active</option><option value="1.55">Moderately Active</option><option value="1.725">Very Active</option></select>
+          </div>
+          <div class="form-group full-width"><label>Approach</label>
+            <select id="strategy" required><option value="mild">Standard Pace</option><option value="aggressive">Aggressive Pace</option><option value="custom">Custom Timeframe</option></select>
+          </div>
+          <div class="form-group full-width" id="custom-time-group" style="display: none;"><label>Weeks to Goal</label><input type="number" id="custom-weeks" min="1" max="150"></div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Calculate Targets</button></div>
+        </form>
+        <div class="result-box" id="calc-result" style="text-align: center;">
+          <h3 id="result-title">Daily Target</h3>
+          <div class="result-value" id="result-kcal" style="font-size: 2.5rem; font-family:'Bruno Ace SC', sans-serif;">0</div>
+          <div class="result-desc">Calories per day</div>
+          <div class="timeline" id="result-timeline" style="margin-top:10px; color:#4ade80;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Omni-Tracker (Protocol + Nutrition) -->
+  <div class="modal-overlay" id="unified-modal">
+    <div class="glass-panel" style="max-width: 850px;">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">System Protocol & Tracker</h2>
+      <div class="modal-body">
+        
+        <div class="plan-section" style="margin-top: 0; padding-top: 0; border: none;">
+          <h4>[ 1. System Configuration ]</h4>
+          <form class="calc-form" id="unified-form">
+            <div class="form-group"><label>Daily Calorie Target</label><input type="number" id="u-goal-cal" placeholder="e.g., 2200" required></div>
+            <div class="form-group"><label>Daily Protein Target (g)</label><input type="number" id="u-goal-pro" placeholder="e.g., 140" required></div>
+            
+            <div class="form-group"><label>Workout Objective</label>
+              <select id="u-goal" required><option value="fat_loss">Fat Loss</option><option value="muscle_gain">Muscle Gain</option><option value="endurance">Endurance</option><option value="holistic">Holistic Healing</option></select>
+            </div>
+            <div class="form-group"><label>Dietary Philosophy</label>
+              <select id="u-diet-pref" required><option value="omnivore">Omnivore</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="keto">Keto</option><option value="whole_food">Whole-Food</option></select>
+            </div>
+            <div class="form-group"><label>Experience</label><select id="u-experience" required><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
+            <div class="form-group"><label>Days/Week</label><select id="u-days" required><option value="3">3 Days</option><option value="4">4 Days</option><option value="5">5 Days</option><option value="6">6 Days</option></select></div>
+            
+            <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Initialize System</button></div>
+          </form>
+        </div>
+
+        <div id="unified-dashboard" style="display: none;">
+          <div class="plan-section">
+            <h4>[ 2. Live Tracker ]</h4>
+            <div style="font-family: sans-serif; font-size: 0.9rem; margin-bottom: 5px; display: flex; justify-content: space-between;">
+              <span>Calories: <strong id="current-cals">0</strong> / <span id="target-cals">0</span> kcal</span>
+            </div>
+            <div class="progress-wrapper"><div class="progress-bar cal" id="bar-cal" style="width: 0%;"></div></div>
+            <div style="font-family: sans-serif; font-size: 0.9rem; margin-top: 10px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+              <span>Protein: <strong id="current-pro">0</strong> / <span id="target-pro">0</span> g</span>
+            </div>
+            <div class="progress-wrapper"><div class="progress-bar pro" id="bar-pro" style="width: 0%;"></div></div>
+
+            <div class="calc-form" style="display: block; margin-top: 20px;">
+              <input type="text" id="food-search-input" placeholder="Inject food (e.g., Boiled Chicken, Chapati, Eggs...)">
+              <div class="search-results" id="food-search-results" style="display: none;"></div>
+            </div>
+            
+            <form id="add-selected-food-form" class="calc-form" style="display: none; margin-top: 10px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+              <div class="form-group full-width" style="font-family: 'Bruno Ace SC', sans-serif; color: #00ffcc; font-size: 0.9rem;" id="selected-food-name">Selected: None</div>
+              <div class="form-group">
+                <label id="selected-food-unit-label">Quantity</label>
+                <input type="number" id="selected-food-qty" required min="1" step="0.1">
+              </div>
+              <div class="form-group" style="justify-content: flex-end;"><button type="submit" class="connect-btn">Add to Log</button></div>
+            </form>
+
+            <form class="calc-form" id="custom-food-form" style="margin-top: 15px;">
+              <div class="form-group full-width"><input type="text" id="custom-food-name" placeholder="Custom Food Name" required></div>
+              <div class="form-group"><input type="number" id="custom-food-cal" placeholder="Total Calories" required></div>
+              <div class="form-group"><input type="number" id="custom-food-pro" placeholder="Total Protein (g)" required></div>
+              <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%; border-color: rgba(255,255,255,0.2);">Inject Custom Data</button></div>
+            </form>
+
+            <div id="plate-log" style="margin-top: 15px;"><p style="font-family: sans-serif; font-size: 0.85rem; opacity: 0.6;">No data injected today.</p></div>
+          </div>
+
+          <div class="plan-section">
+            <h4>[ 3. Generated Protocol ]</h4>
+            <div id="output-workout"></div>
+            <p id="output-diet" style="margin-top: 15px; font-family: sans-serif; opacity: 0.8;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Immunity Firewall Modal -->
+  <div class="modal-overlay" id="immunity-modal">
+    <div class="glass-panel">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">Immunity Firewall</h2>
+      <div class="modal-body">
+        <p>Deploy naturopathic patches to defend against biological vulnerabilities.</p>
+        <form class="calc-form" id="immunity-form">
+          <div class="form-group full-width">
+            <label>Current Vulnerability</label>
+            <select id="immune-threat" required>
+              <option value="stress">High System Stress / Cortisol Overload</option>
+              <option value="travel">Post-Travel Exposure</option>
+              <option value="cold">Viral Breach (Early Cold Symptoms)</option>
+              <option value="allergy">Histamine Overload (Allergies)</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Deploy Patch</button></div>
+        </form>
+        <div class="result-box" id="immunity-result">
+          <div class="plan-section"><h4>[ Defense Protocol ]</h4><p id="immunity-output"></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Cognitive Defrag Modal -->
+  <div class="modal-overlay" id="defrag-modal">
+    <div class="glass-panel">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">Cognitive Defrag</h2>
+      <div class="modal-body">
+        <p>Clear mental RAM and optimize neurotransmitter baseline.</p>
+        <form class="calc-form" id="defrag-form">
+          <div class="form-group full-width">
+            <label>Mental State Indicator</label>
+            <select id="mental-state" required>
+              <option value="fog">Brain Fog / Sluggish</option>
+              <option value="burnout">Developer Burnout / Exhausted</option>
+              <option value="doom">Doom-scrolling / High Dopamine Tolerance</option>
+              <option value="adhd">Scattered Focus / Hyperactive</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Execute Defrag</button></div>
+        </form>
+        <div class="result-box" id="defrag-result">
+          <div class="plan-section"><h4>[ RAM Optimization ]</h4><p id="defrag-output"></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Hardware Recalibration Modal -->
+  <div class="modal-overlay" id="hardware-modal">
+    <div class="glass-panel">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">Hardware Recalibration</h2>
+      <div class="modal-body">
+        <p>Biomechanics patches for desk-worker degradation.</p>
+        <form class="calc-form" id="hardware-form">
+          <div class="form-group full-width">
+            <label>Structural Failure Point</label>
+            <select id="pain-point" required>
+              <option value="neck">Tech Neck / Upper Traps</option>
+              <option value="back">Lower Back / Glute Amnesia</option>
+              <option value="hips">Tight Hips / Psoas Tension</option>
+              <option value="wrists">Carpal Tunnel / Forearm Fatigue</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Generate Fix</button></div>
+        </form>
+        <div class="result-box" id="hardware-result">
+          <div class="plan-section"><h4>[ Structural Patch Notes ]</h4><p id="hardware-output"></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Sleep Decryptor Modal -->
+  <div class="modal-overlay" id="sleep-modal">
+    <div class="glass-panel">
+      <button class="close-btn back-to-tools-btn">←</button>
+      <h2 class="modal-title">Sleep Decryptor</h2>
+      <div class="modal-body">
+        <p>Calculate optimal 90-minute REM cycles to prevent system grogginess.</p>
+        <form class="calc-form" id="sleep-form">
+          <div class="form-group full-width">
+            <label>Required Wake-Up Time</label>
+            <input type="time" id="wake-time" required>
+          </div>
+          <div class="form-group full-width"><button type="submit" class="connect-btn" style="width: 100%;">Calculate Cycles</button></div>
+        </form>
+        <div class="result-box" id="sleep-result">
+          <div class="plan-section"><h4>[ Optimal Sleep Times ]</h4>
+            <p style="opacity:1;">To wake up refreshed, fall asleep at exactly:</p>
+            <div id="sleep-output" style="font-size:1.5rem; color:#00ffcc; font-family:'Bruno Ace SC', sans-serif; margin:15px 0;"></div>
+            <p id="sleep-pre-protocol" style="font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- Firebase & App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6Rluw07iZoEDUxZPsY-jw-ymm0gOFPiQ",
+      authDomain: "website-login-1cb61.firebaseapp.com",
+      projectId: "website-login-1cb61",
+      storageBucket: "website-login-1cb61.firebasestorage.app",
+      messagingSenderId: "1098916114608",
+      appId: "1:1098916114608:web:c126332a1c62b475c64b75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const clientsCollection = collection(db, "clients");
+
+    // --- Authentication System State ---
+    const ADMIN_CREDS = { username: 'MRJ', password: '6768824' };
+    let authState = { isLoggedIn: false, role: null }; 
+
+    const loginNavBtn = document.getElementById('login-nav-btn');
+    const logoutNavBtn = document.getElementById('logout-nav-btn');
+    const adminNavBtn = document.getElementById('admin-nav-btn');
+    const plannerLockIcon = document.getElementById('planner-lock-icon');
+    
+    function updateAuthUI() {
+      if (authState.isLoggedIn) {
+        loginNavBtn.style.display = 'none'; logoutNavBtn.style.display = 'inline-block';
+        adminNavBtn.style.display = (authState.role === 'admin') ? 'inline-block' : 'none';
+        if(plannerLockIcon) { plannerLockIcon.innerText = '🔓'; plannerLockIcon.style.color = '#00ffcc'; }
+      } else {
+        loginNavBtn.style.display = 'inline-block'; logoutNavBtn.style.display = 'none'; adminNavBtn.style.display = 'none';
+        if(plannerLockIcon) { plannerLockIcon.innerText = '🔒'; plannerLockIcon.style.color = 'inherit'; }
+      }
+    }
+
+    // --- FIREBASE LOGIN ---
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
+      const errorMsg = document.getElementById('login-error'), submitBtn = e.target.querySelector('button');
+      submitBtn.innerText = "Authenticating...";
+
+      if (u === ADMIN_CREDS.username && p === ADMIN_CREDS.password) {
+        authState = { isLoggedIn: true, role: 'admin' }; errorMsg.style.display = 'none'; closeAllModals(); updateAuthUI(); document.getElementById('login-form').reset(); submitBtn.innerText = "Access System"; return;
+      }
+      try {
+        const q = query(clientsCollection, where("username", "==", u), where("password", "==", p));
+        const qs = await getDocs(q);
+        if (!qs.empty) { authState = { isLoggedIn: true, role: 'client' }; errorMsg.style.display = 'none'; closeAllModals(); updateAuthUI(); document.getElementById('login-form').reset(); } 
+        else { errorMsg.style.display = 'block'; }
+      } catch (err) { errorMsg.innerText = "System error."; errorMsg.style.display = 'block'; }
+      submitBtn.innerText = "Access System";
+    });
+
+    logoutNavBtn.addEventListener('click', (e) => { e.preventDefault(); authState = { isLoggedIn: false, role: null }; updateAuthUI(); });
+
+    // --- FIREBASE ADMIN ADD/FETCH ---
+    document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('new-user-id').value, p = document.getElementById('new-user-pass').value;
+      const btn = e.target.querySelector('button'); btn.innerText = "Registering...";
+      try {
+        const check = await getDocs(query(clientsCollection, where("username", "==", u)));
+        if (!check.empty) { alert("Client ID exists."); } else { await addDoc(clientsCollection, { username: u, password: p, createdAt: new Date() }); document.getElementById('add-user-form').reset(); await renderClientList(); }
+      } catch (err) { alert("DB Error."); }
+      btn.innerText = "Register Client";
+    });
+
+    async function renderClientList() {
+      const cont = document.getElementById('active-users-container'); cont.innerHTML = '<div class="user-item" style="opacity: 0.5;">Loading database...</div>';
+      try {
+        const qs = await getDocs(clientsCollection);
+        if (qs.empty) { cont.innerHTML = '<div class="user-item" style="opacity: 0.5;">No active clients.</div>'; return; }
+        cont.innerHTML = ''; qs.forEach((doc) => { const c = doc.data(); cont.innerHTML += `<div class="user-item"><span>ID: <strong>${c.username}</strong></span> <span>Key: ${c.password}</span></div>`; });
+      } catch (err) { cont.innerHTML = '<div class="user-item" style="color: #ef4444;">Error loading.</div>'; }
+    }
+
+    // --- Modal Navigation ---
+    function closeAllModals() { document.querySelectorAll('.modal-overlay').forEach(m => { m.classList.remove('active'); const panel = m.querySelector('.glass-panel'); if(panel) panel.scrollTop = 0; }); }
+    document.getElementById('about-link').addEventListener('click', (e) => { e.preventDefault(); closeAllModals(); document.getElementById('about-modal').classList.add('active'); });
+    document.getElementById('tools-link').addEventListener('click', (e) => { e.preventDefault(); closeAllModals(); document.getElementById('tools-menu-modal').classList.add('active'); });
+    loginNavBtn.addEventListener('click', (e) => { e.preventDefault(); closeAllModals(); document.getElementById('login-modal').classList.add('active'); });
+    adminNavBtn.addEventListener('click', (e) => { e.preventDefault(); closeAllModals(); document.getElementById('admin-modal').classList.add('active'); renderClientList(); });
+    
+    document.querySelectorAll('.public-tool-btn').forEach(btn => { btn.addEventListener('click', () => { closeAllModals(); document.getElementById(btn.dataset.target).classList.add('active'); }); });
+    
+    document.querySelectorAll('.secure-tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (authState.isLoggedIn) { closeAllModals(); document.getElementById(btn.dataset.target).classList.add('active'); } 
+        else {
+          closeAllModals(); document.getElementById('login-modal').classList.add('active');
+          const title = document.querySelector('#login-modal .modal-title'); title.innerText = "AUTH REQUIRED"; title.style.color = "#ef4444";
+          setTimeout(() => { title.innerText = "Authentication"; title.style.color = "inherit"; }, 2000);
+        }
+      });
+    });
+
+    document.querySelectorAll('.back-to-tools-btn').forEach(btn => btn.addEventListener('click', () => { closeAllModals(); document.getElementById('tools-menu-modal').classList.add('active'); }));
+    document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAllModals));
+
+    // --- Tool: Calorie Engine ---
+    document.getElementById('strategy').addEventListener('change', (e) => {
+      const grp = document.getElementById('custom-time-group'); const inp = document.getElementById('custom-weeks');
+      if(e.target.value === 'custom') { grp.style.display = 'flex'; inp.required = true; } else { grp.style.display = 'none'; inp.required = false; }
+    });
+    document.getElementById('calorie-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const age = parseInt(document.getElementById('age').value), gender = document.getElementById('gender').value, weight = parseFloat(document.getElementById('weight').value), target = parseFloat(document.getElementById('target-weight').value), height = parseFloat(document.getElementById('height').value), act = parseFloat(document.getElementById('activity').value), strat = document.getElementById('strategy').value;
+      let bmr = (10 * weight) + (6.25 * height) - (5 * age); bmr += (gender === 'male') ? 5 : -161; let tdee = bmr * act;
+      let finalKcal = tdee, action = "Maintenance", timeline = "At target weight.";
+      const diff = Math.abs(weight - target), calShift = diff * 7700;
+      if (diff > 0.1) {
+        let offset = 0, weeks = 0;
+        if (strat === 'custom') { weeks = parseFloat(document.getElementById('custom-weeks').value); offset = calShift / (weeks * 7); } else { offset = strat === 'aggressive' ? 500 : 250; weeks = calShift / (offset * 7); }
+        if (target < weight) { action = "Weight Loss"; finalKcal = tdee - offset; timeline = `Est. time: <strong>~${Math.ceil(weeks)} weeks</strong>.`; } else { action = "Weight Gain"; finalKcal = tdee + offset; timeline = `Est. time: <strong>~${Math.ceil(weeks)} weeks</strong>.`; }
+      }
+      document.getElementById('result-title').innerText = action; document.getElementById('result-kcal').innerText = Math.round(finalKcal).toLocaleString() + " kcal"; document.getElementById('result-timeline').innerHTML = timeline; document.getElementById('calc-result').style.display = 'block'; document.querySelector('#calculator-modal .glass-panel').scrollTo({top:1000, behavior:'smooth'});
+    });
+
+    // --- MERGED TOOL: Omni-Tracker (Expanded Database & Alternative Workouts FIX) ---
+    const foodDB = [
+      { name: "Boiled Chicken Breast", unit: "100g", cal: 165, pro: 31.0 }, { name: "Raw Chicken Breast", unit: "100g", cal: 120, pro: 22.5 },
+      { name: "Chicken Tikka (Dry)", unit: "100g", cal: 150, pro: 22.0 }, { name: "Chicken Biryani", unit: "100g", cal: 160, pro: 10.0 },
+      { name: "Whole Egg (Large)", unit: "piece", cal: 72, pro: 6.3 }, { name: "Boiled Egg", unit: "piece", cal: 78, pro: 6.3 },
+      { name: "Duck Egg", unit: "piece", cal: 130, pro: 9.0 }, { name: "Egg White", unit: "piece", cal: 17, pro: 3.6 }, { name: "Omelette (2 Eggs)", unit: "piece", cal: 188, pro: 13.0 },
+      { name: "Beef (Lean, Cooked)", unit: "100g", cal: 250, pro: 26.0 }, { name: "Pork Chop (Cooked)", unit: "100g", cal: 242, pro: 27.0 },
+      { name: "Salmon (Cooked)", unit: "100g", cal: 208, pro: 20.0 }, { name: "Tuna (Canned in Water)", unit: "100g", cal: 132, pro: 28.0 },
+      { name: "Soya Chunks (Nutrela)", unit: "100g", cal: 345, pro: 52.0 }, { name: "Tofu (Firm)", unit: "100g", cal: 144, pro: 16.0 },
+      { name: "Raw Paneer", unit: "100g", cal: 265, pro: 18.0 }, { name: "Paneer Butter Masala", unit: "100g", cal: 230, pro: 8.0 },
+      { name: "Milk (Full Cream)", unit: "100ml", cal: 61, pro: 3.2 }, { name: "Milk (Skimmed)", unit: "100ml", cal: 35, pro: 3.4 }, { name: "Curd / Yogurt", unit: "100g", cal: 98, pro: 11.0 },
+      { name: "Whey Protein (1 Scoop)", unit: "piece", cal: 120, pro: 24.0 }, { name: "Peanut Butter", unit: "15g", cal: 88, pro: 3.5 },
+      { name: "Almonds", unit: "100g", cal: 579, pro: 21.0 }, { name: "Walnuts", unit: "100g", cal: 654, pro: 15.0 },
+      { name: "White Rice (Cooked)", unit: "100g", cal: 130, pro: 2.7 }, { name: "Brown Rice (Cooked)", unit: "100g", cal: 111, pro: 2.6 },
+      { name: "Chapati / Roti", unit: "piece", cal: 71, pro: 3.0 }, { name: "Oats (Raw)", unit: "100g", cal: 389, pro: 16.9 },
+      { name: "Dosa (Plain)", unit: "piece", cal: 133, pro: 3.3 }, { name: "Idli", unit: "piece", cal: 58, pro: 1.6 },
+      { name: "Dal Tadka / Lentils (Cooked)", unit: "100g", cal: 116, pro: 9.0 }, { name: "Chickpeas / Chole (Cooked)", unit: "100g", cal: 164, pro: 8.9 }, { name: "Rajma / Kidney Beans (Cooked)", unit: "100g", cal: 127, pro: 8.7 },
+      { name: "Sweet Potato (Boiled)", unit: "100g", cal: 86, pro: 1.6 }, { name: "Potato (Boiled)", unit: "100g", cal: 77, pro: 2.0 },
+      { name: "Broccoli", unit: "100g", cal: 34, pro: 2.8 }, { name: "Spinach", unit: "100g", cal: 23, pro: 2.9 },
+      { name: "Banana", unit: "piece", cal: 105, pro: 1.3 }, { name: "Apple", unit: "piece", cal: 95, pro: 0.5 }, { name: "Samosa", unit: "piece", cal: 262, pro: 3.5 }
+    ];
+    let nutritionGoals = { cal: 0, pro: 0 }; let currentNutrition = { cal: 0, pro: 0 }; let foodPlate = []; let selectedFoodFromDB = null;
+
+    document.getElementById('unified-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      nutritionGoals.cal = parseFloat(document.getElementById('u-goal-cal').value); nutritionGoals.pro = parseFloat(document.getElementById('u-goal-pro').value);
+      document.getElementById('target-cals').innerText = nutritionGoals.cal; document.getElementById('target-pro').innerText = nutritionGoals.pro;
+      
+      const goal = document.getElementById('u-goal').value, exp = document.getElementById('u-experience').value, days = parseInt(document.getElementById('u-days').value), dietPref = document.getElementById('u-diet-pref').value;
+      let sets = exp === 'beginner' ? '2-3' : (exp === 'intermediate' ? '3-4' : '4-5');
+      let wGuide = exp === 'beginner' ? "Light (RPE 6)" : (exp === 'intermediate' ? "Mod (RPE 7-8)" : "Heavy (RPE 8-9)");
+      let reps = "8-12"; if (goal === 'fat_loss') reps = "10-15"; if (goal === 'endurance') reps = "15-20+"; if (goal === 'holistic') reps = "Slow 10 reps";
+      
+      const exerciseDB = { 
+        beginner: { 
+          push: "Machine Press<br><span style='font-size:0.75rem; color:#888;'>Alt: Pushups / DB Flat Press</span>", 
+          pull: "Lat Pulldown<br><span style='font-size:0.75rem; color:#888;'>Alt: DB Row / Machine Row</span>", 
+          legs: "Goblet Squat<br><span style='font-size:0.75rem; color:#888;'>Alt: Leg Press / Lunges</span>" 
+        }, 
+        intermediate: { 
+          push: "Barbell Bench Press<br><span style='font-size:0.75rem; color:#888;'>Alt: Incline DB Press / Dips</span>", 
+          pull: "Barbell Row<br><span style='font-size:0.75rem; color:#888;'>Alt: Pull-ups / T-Bar Row</span>", 
+          legs: "Back Squat<br><span style='font-size:0.75rem; color:#888;'>Alt: Bulgarian Split Squats / Front Squat</span>" 
+        }, 
+        advanced: { 
+          push: "Heavy DB Press<br><span style='font-size:0.75rem; color:#888;'>Alt: Overhead Press / Deficit Pushups</span>", 
+          pull: "Weighted Pull-ups<br><span style='font-size:0.75rem; color:#888;'>Alt: Pendlay Rows / Muscle-ups</span>", 
+          legs: "Front Squats<br><span style='font-size:0.75rem; color:#888;'>Alt: Hack Squats / Heavy Deadlifts</span>" 
+        } 
+      };
+      
+      // FIX: Correctly extract the sub-object based on user experience level
+      const ex = exerciseDB[exp];
+      
+      let tHTML = `<table class="protocol-table"><thead><tr><th>Day</th><th>Target</th><th>Primary Exercise & Alternatives</th><th>Sets x Reps</th><th>Intensity</th></tr></thead><tbody>`;
+      if (goal === "holistic") { for(let i=1; i<=days; i++) tHTML += `<tr><td>Day ${i}</td><td>System</td><td>Yoga Flow <br><span style='font-size:0.75rem; color:#888;'>Alt: Pilates / Mobility Drills</span></td><td>N/A</td><td>LISS</td></tr>`; } else {
+        for(let i=1; i<=days; i++) {
+          let t = {}, d = "";
+          if (days <= 3) { d = "Full Body"; t = { name: `${ex.push} <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:5px 0;"> ${ex.legs}`, part: "Full System" }; } else if (days === 4) { if (i===1||i===3) { d = "Upper"; t = {name: `${ex.push} <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:5px 0;"> ${ex.pull}`, part: "Upper"}; } else { d = "Lower"; t = {name: ex.legs, part: "Legs"}; } } else { if (i%3===1) { d = "Push"; t = {name: ex.push, part: "Chest/Tri"}; } else if (i%3===2) { d = "Pull"; t = {name: ex.pull, part: "Back/Bi"}; } else { d = "Legs"; t = {name: ex.legs, part: "Legs"}; } }
+          tHTML += `<tr><td>Day ${i} <br><small style="opacity:0.6">${d}</small></td><td>${t.part}</td><td>${t.name}</td><td>${sets}x${reps}</td><td>${wGuide}</td></tr>`;
+        }
+      }
+      tHTML += `</tbody></table>`; document.getElementById('output-workout').innerHTML = tHTML;
+      let dStr = "<strong>Balanced Framework:</strong> Hit your tracked macros daily. Prioritize protein synthesis."; if(dietPref === "keto") dStr = "<strong>Keto:</strong> Keep carbs < 30g/day. High fat intake."; if(dietPref === "whole_food") dStr = "<strong>Naturopathic:</strong> Living foods, sprouted grains. Hit macros through whole sources."; if(dietPref === "vegan") dStr = "<strong>Vegan:</strong> Ensure complete amino acids by combining plant proteins.";
+      document.getElementById('output-diet').innerHTML = dStr;
+      
+      document.getElementById('unified-dashboard').style.display = 'block'; updatePlateUI(); setTimeout(() => document.querySelector('#unified-modal .glass-panel').scrollTo({top: 600, behavior:'smooth'}), 100);
+    });
+
+    const searchInput = document.getElementById('food-search-input'); const searchResults = document.getElementById('food-search-results'); const selectedForm = document.getElementById('add-selected-food-form');
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase(); searchResults.innerHTML = '';
+      if(q.length < 2) { searchResults.style.display = 'none'; return; }
+      const filtered = foodDB.filter(f => f.name.toLowerCase().includes(q));
+      if(filtered.length === 0) searchResults.innerHTML = '<div class="search-item" style="opacity:0.5;">No results. Use custom module.</div>';
+      else { filtered.forEach(food => { const div = document.createElement('div'); div.className = 'search-item'; div.innerHTML = `<span>${food.name}</span> <span style="opacity:0.6; font-size:0.75rem;">${food.cal}kcal / ${food.unit}</span>`; div.addEventListener('click', () => { selectedFoodFromDB = food; searchInput.value = ''; searchResults.style.display = 'none'; document.getElementById('selected-food-name').innerText = `Selected: ${food.name}`; document.getElementById('selected-food-unit-label').innerText = food.unit === '100g' ? 'Quantity (Grams)' : 'Quantity (Pieces)'; selectedForm.style.display = 'block'; }); searchResults.appendChild(div); }); }
+      searchResults.style.display = 'block';
+    });
+
+    selectedForm.addEventListener('submit', (e) => {
+      e.preventDefault(); if(!selectedFoodFromDB) return; const qty = parseFloat(document.getElementById('selected-food-qty').value);
+      let c = 0, p = 0; if(selectedFoodFromDB.unit === '100g') { c = (qty/100)*selectedFoodFromDB.cal; p = (qty/100)*selectedFoodFromDB.pro; } else { c = qty*selectedFoodFromDB.cal; p = qty*selectedFoodFromDB.pro; }
+      foodPlate.push({ name: selectedFoodFromDB.name, qty: qty, unit: selectedFoodFromDB.unit === '100g' ? 'g' : 'pcs', cal: c, pro: p });
+      selectedForm.style.display = 'none'; document.getElementById('selected-food-qty').value = ''; selectedFoodFromDB = null; updatePlateUI();
+    });
+
+    document.getElementById('custom-food-form').addEventListener('submit', (e) => {
+      e.preventDefault(); foodPlate.push({ name: document.getElementById('custom-food-name').value, qty: 1, unit: 'custom', cal: parseFloat(document.getElementById('custom-food-cal').value), pro: parseFloat(document.getElementById('custom-food-pro').value) });
+      document.getElementById('custom-food-form').reset(); updatePlateUI();
+    });
+
+    function updatePlateUI() {
+      currentNutrition.cal = foodPlate.reduce((s, i) => s + i.cal, 0); currentNutrition.pro = foodPlate.reduce((s, i) => s + i.pro, 0);
+      document.getElementById('current-cals').innerText = Math.round(currentNutrition.cal); document.getElementById('current-pro').innerText = Math.round(currentNutrition.pro);
+      document.getElementById('bar-cal').style.width = `${Math.min((currentNutrition.cal / nutritionGoals.cal) * 100, 100)}%`; document.getElementById('bar-pro').style.width = `${Math.min((currentNutrition.pro / nutritionGoals.pro) * 100, 100)}%`;
+      const log = document.getElementById('plate-log');
+      if(foodPlate.length === 0) log.innerHTML = '<p style="font-family: sans-serif; font-size: 0.85rem; opacity: 0.6;">No data injected today.</p>';
+      else { log.innerHTML = ''; foodPlate.forEach((f) => { const div = document.createElement('div'); div.className = 'food-plate-item'; div.innerHTML = `<span><strong>${f.name}</strong> (${f.qty}${f.unit})</span><span>${Math.round(f.cal)} kcal | ${Math.round(f.pro)}g Pro</span>`; log.appendChild(div); }); }
+    }
+
+    // --- Other Tools (Immunity, Defrag, Hardware, Sleep) ---
+    document.getElementById('immunity-form').addEventListener('submit', (e) => { e.preventDefault(); const threat = document.getElementById('immune-threat').value; let out = ""; if(threat === 'stress') out = "<ul><li><strong>Supplement:</strong> Ashwagandha Root Extract (500mg).</li><li><strong>Protocol:</strong> 4-7-8 Breathwork x 4 rounds.</li><li><strong>Hydrotherapy:</strong> Warm epsom salt bath.</li></ul>"; else if(threat === 'travel') out = "<ul><li><strong>Supplement:</strong> Liposomal Vitamin C (1000mg) + Zinc Picolinate (30mg).</li><li><strong>Protocol:</strong> Grounding (15 mins barefoot).</li><li><strong>Hydration:</strong> 3L filtered water.</li></ul>"; else if(threat === 'cold') out = "<ul><li><strong>Supplement:</strong> Echinacea + Elderberry.</li><li><strong>Protocol:</strong> Contrast Showers (3 mins hot / 30s cold).</li><li><strong>Diet:</strong> Fasting or bone-broth only for 16 hours.</li></ul>"; else if(threat === 'allergy') out = "<ul><li><strong>Supplement:</strong> Quercetin + Nettle leaf tea.</li><li><strong>Protocol:</strong> Nasal saline irrigation.</li><li><strong>Diet:</strong> Avoid dairy/gluten for 72h.</li></ul>"; document.getElementById('immunity-output').innerHTML = out; document.getElementById('immunity-result').style.display = 'block'; });
+    document.getElementById('defrag-form').addEventListener('submit', (e) => { e.preventDefault(); const state = document.getElementById('mental-state').value; let out = ""; if(state === 'fog') out = "<ul><li><strong>Action:</strong> Hydrate with electrolytes immediately.</li><li><strong>Naturopathy:</strong> Lion's Mane (500mg).</li></ul>"; else if(state === 'burnout') out = "<ul><li><strong>Action:</strong> Zero screens after 7 PM.</li><li><strong>Naturopathy:</strong> Brahmi (Bacopa monnieri).</li></ul>"; else if(state === 'doom') out = "<ul><li><strong>Action:</strong> Grayscale your phone screen.</li><li><strong>Rule:</strong> 24-hour social media fast.</li></ul>"; else if(state === 'adhd') out = "<ul><li><strong>Action:</strong> Box Breathing to ground nervous system.</li><li><strong>Naturopathy:</strong> L-Theanine (200mg) with coffee.</li></ul>"; document.getElementById('defrag-output').innerHTML = out; document.getElementById('defrag-result').style.display = 'block'; });
+    document.getElementById('hardware-form').addEventListener('submit', (e) => { e.preventDefault(); const pain = document.getElementById('pain-point').value; let out = ""; if(pain === 'neck') out = "<ul><li><strong>Release:</strong> Suboccipital release using lacrosse ball.</li><li><strong>Strengthen:</strong> Chin tucks (3x15).</li></ul>"; else if(pain === 'back') out = "<ul><li><strong>Release:</strong> Foam roll mid-back.</li><li><strong>Strengthen:</strong> Glute bridges (3x20).</li></ul>"; else if(pain === 'hips') out = "<ul><li><strong>Stretch:</strong> Couch stretch for Psoas (2 mins per side).</li><li><strong>Strengthen:</strong> Clamshells.</li></ul>"; else if(pain === 'wrists') out = "<ul><li><strong>Stretch:</strong> Prayer stretch and reverse prayer.</li><li><strong>Hardware:</strong> Vertical mouse.</li></ul>"; document.getElementById('hardware-output').innerHTML = out; document.getElementById('hardware-result').style.display = 'block'; });
+    document.getElementById('sleep-form').addEventListener('submit', (e) => { e.preventDefault(); const wakeTime = document.getElementById('wake-time').value; if(!wakeTime) return; const [hours, minutes] = wakeTime.split(':').map(Number); const wakeDate = new Date(); wakeDate.setHours(hours, minutes, 0, 0); const formatTime = (date) => { let h = date.getHours(); let m = date.getMinutes(); const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; h = h ? h : 12; m = m < 10 ? '0'+m : m; return `${h}:${m} ${ampm}`; }; const times = [9, 7.5, 6].map(hoursReq => { const d = new Date(wakeDate.getTime()); d.setMinutes(d.getMinutes() - (hoursReq * 60) - 14); return formatTime(d); }); document.getElementById('sleep-output').innerText = `${times[0]} OR ${times[1]} OR ${times[2]}`; document.getElementById('sleep-pre-protocol').innerHTML = `<em>Sleep occurs in 90-min cycles. Includes 14m average time-to-sleep.</em><br><br><strong>Pre-Hibernation:</strong> Set room to 18°C. Magnesium Glycinate (200mg). No blue light 1 hr prior.`; document.getElementById('sleep-result').style.display = 'block'; });
+
+    // --- 3D Background Logic ---
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x050505); scene.fog = new THREE.FogExp2(0x050505, 0.04);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000); camera.position.z = 8;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); document.getElementById('canvas-container').appendChild(renderer.domElement);
+    const coreMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true, transparent: true, opacity: 0.25 });
+    const coreMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(2, 1), coreMaterial); scene.add(coreMesh);
+    const particlesCount = 1500; const posArray = new Float32Array(particlesCount * 3); for(let i = 0; i < particlesCount * 3; i++) { posArray[i] = (Math.random() - 0.5) * 20; }
+    const particlesGeo = new THREE.BufferGeometry(); particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particleMaterial = new THREE.PointsMaterial({ size: 0.05, color: 0x4ade80, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+    const particleMesh = new THREE.Points(particlesGeo, particleMaterial); scene.add(particleMesh);
+    const themes = [{ name: "Cyber Nature", core: 0x00ffcc, particles: 0x4ade80, geo: 'Icosahedron' }, { name: "Neon Matrix", core: 0xccff00, particles: 0x00ff66, geo: 'TorusKnot' }, { name: "Monochrome", core: 0xaaaaaa, particles: 0xffffff, geo: 'Octahedron' }, { name: "Amethyst", core: 0x9d4edd, particles: 0xe0aaff, geo: 'Torus' }, { name: "Crimson", core: 0xd90429, particles: 0xef233c, geo: 'Dodecahedron' }];
+    const dotsContainer = document.getElementById('theme-dots-container');
+    themes.forEach((t, i) => {
+      const dot = document.createElement('div'); dot.className = 'theme-dot' + (i===0?' active':''); dot.style.backgroundColor = '#' + t.core.toString(16).padStart(6, '0'); dot.style.color = '#' + t.particles.toString(16).padStart(6, '0');
+      dot.addEventListener('click', () => {
+         document.querySelectorAll('.theme-dot').forEach((d, idx) => d.classList.toggle('active', i===idx));
+         coreMaterial.color.setHex(t.core); particleMaterial.color.setHex(t.particles);
+         if(t.geo === 'TorusKnot') coreMesh.geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 64, 8); else if(t.geo === 'Octahedron') coreMesh.geometry = new THREE.OctahedronGeometry(2, 0); else if(t.geo === 'Torus') coreMesh.geometry = new THREE.TorusGeometry(1.5, 0.5, 16, 32); else if(t.geo === 'Dodecahedron') coreMesh.geometry = new THREE.DodecahedronGeometry(2, 0); else coreMesh.geometry = new THREE.IcosahedronGeometry(2, 1);
+         document.getElementById('current-theme-name').innerText = "Theme: " + t.name;
+      }); dotsContainer.appendChild(dot);
+    });
+    document.getElementById('mode-toggle').addEventListener('click', (e) => {
+      e.preventDefault(); document.body.classList.toggle('light-mode');
+      if(document.body.classList.contains('light-mode')) {
+        e.target.innerText = "Dark Mode"; scene.background.setHex(0xf0f0f0); scene.fog.color.setHex(0xf0f0f0); coreMaterial.opacity = 0.4; particleMaterial.blending = THREE.NormalBlending;
+      } else { e.target.innerText = "Light Mode"; scene.background.setHex(0x050505); scene.fog.color.setHex(0x050505); coreMaterial.opacity = 0.25; particleMaterial.blending = THREE.AdditiveBlending; }
+    });
+    let mouseX = 0, mouseY = 0; document.addEventListener('mousemove', (e) => { mouseX = (e.clientX - window.innerWidth / 2) * 0.001; mouseY = (e.clientY - window.innerHeight / 2) * 0.001; });
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate); const time = clock.getElapsedTime(); const isModalOpen = document.querySelector('.modal-overlay.active');
+      if (!isModalOpen) { coreMesh.rotation.x += 0.002; coreMesh.rotation.y += 0.003; coreMesh.position.y = Math.sin(time) * 0.2; particleMesh.rotation.y = time * 0.05; camera.position.x += (mouseX * 5 - camera.position.x) * 0.05; camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05; } 
+      else { coreMesh.rotation.x += 0.0005; coreMesh.rotation.y += 0.0005; particleMesh.rotation.y += 0.0005; }
+      camera.lookAt(scene.position); renderer.render(scene, camera);
+    } animate();
+  </script>
+</body>
+</html>
